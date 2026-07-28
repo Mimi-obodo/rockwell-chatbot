@@ -36,6 +36,9 @@
 
   #disclosure{background:#fff;border-top:1px solid var(--border);padding:8px 16px;font-size:11.5px;color:var(--muted);text-align:center;flex-shrink:0;line-height:1.45}
 
+  .live-badge{display:none;align-self:flex-start;background:#ecfdf5;color:#065f46;border:1px solid #6ee7b7;border-radius:var(--radius);padding:3px 10px;font-size:11px;font-weight:600;letter-spacing:.3px;margin-top:2px}
+  .live-badge.show{display:inline-block}
+
   .typing{display:inline-block}
   .typing::after{content:"";animation:blink 1s step-end infinite}
   @keyframes blink{50%{opacity:0}}
@@ -58,6 +61,7 @@
 
 <div id="chat">
   <div class="msg system">Welcome. I can help with pricing, availability, services, and site-survey queries including seismic conditions.</div>
+  <div id="live-badge" class="live-badge">LIVE DATA FETCHED</div>
 </div>
 
 <div id="input-bar">
@@ -75,6 +79,7 @@
   const chat      = document.getElementById("chat");
   const input     = document.getElementById("user-input");
   const sendBtn   = document.getElementById("send-btn");
+  const liveBadge = document.getElementById("live-badge");
 
   /* ---- Helpers ---- */
   function scrollToBottom(){ chat.scrollTop = chat.scrollHeight; }
@@ -122,17 +127,21 @@
   }
 
   /* ---- Keyword detection ---- */
-  const SHEET_KW = /price|fee|cost|available|stock|slot|service|survey.*price|how much|pricing|quote/i;
+  const SHEET_KW = /price|fee|cost|quote|available|availability|stock|slot|service|region|book|booking|survey.*price|how much|pricing/i;
   const QUAKE_KW = /earthquake|seismic|ground.*(motion|shaking)|tremor|risk|usgs|magnitude|richter/i;
 
   /* ---- Fetch Google Sheet CSV ---- */
   const SHEET_URL = "https://docs.google.com/spreadsheets/d/1RsgmK5VoY2uQI-636AXH2LvwBHGDDsyp76T1Cu1D37U/gviz/tq?tqx=out:csv";
 
   async function fetchSheetData(){
-    const res = await fetch(SHEET_URL);
+    const cacheBust = SHEET_URL + "&_t=" + Date.now();
+    console.log("[Sheet] Fetching live CSV at", new Date().toISOString(), "→", cacheBust);
+    const res = await fetch(cacheBust);
     if(!res.ok) throw new Error("Sheet fetch failed: " + res.status);
     const csv = await res.text();
+    console.log("[Sheet] Raw CSV (" + csv.length + " chars):", csv);
     const rows = parseCSV(csv);
+    console.log("[Sheet] Parsed rows:", rows.length, "— headers:", rows[0]);
     if(rows.length < 2) return "No data rows found in sheet.";
     const headers = rows[0].join(" | ");
     const body = rows.slice(1, 30).map(r => r.join(" | ")).join("\n");
@@ -189,9 +198,11 @@ IMPORTANT RULES:
     const typing = showTyping();
 
     const promises = [];
-    if(needSheet) promises.push(fetchSheetData().then(d => dataBits.push("SHEET_DATA:\n" + d)).catch(e => dataBits.push("SHEET_DATA_ERROR: " + e.message)));
+    if(needSheet) promises.push(fetchSheetData().then(d => { dataBits.push("SHEET_DATA:\n" + d); liveBadge.classList.add("show"); console.log("[Sheet] Injected into prompt ✓"); }).catch(e => { dataBits.push("SHEET_DATA_ERROR: " + e.message); console.error("[Sheet] Fetch failed:", e.message); }));
     if(needQuake) promises.push(fetchQuakeData(text).then(d => dataBits.push("SEISMIC_DATA:\n" + d)).catch(e => dataBits.push("SEISMIC_DATA_ERROR: " + e.message)));
     await Promise.all(promises);
+
+    if(!needSheet) liveBadge.classList.remove("show");
 
     let prompt = SYSTEM_PROMPT + "\n\n";
     if(dataBits.length) prompt += dataBits.join("\n\n") + "\n\n";
