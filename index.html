@@ -3,140 +3,447 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Rockwell Site Surveys — Support Assistant</title>
+<title>Rockwell Site Surveys — Smart Customer Support</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
 <script src="https://js.puter.com/v2/"></script>
 <style>
-  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-  :root{
-    --bg:#f4f5f7;--surface:#fff;--border:#d0d5dd;--text:#1a1a2e;
-    --muted:#6b7280;--accent:#1e3a5f;--accent-light:#2d5a8e;
-    --user-bg:#e8eef5;--bot-bg:#fff;--radius:8px;
-  }
-  html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--text);font-size:15px;line-height:1.5}
-  body{display:flex;flex-direction:column}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#F9F5F0;--bg2:#EFE6DD;--primary:#7A5C43;--dark:#5C4432;
+  --accent:#DCC8B2;--text:#2B2B2B;--muted:#777;
+  --card:rgba(255,255,255,.55);--card-solid:#fff;
+  --glass:rgba(255,255,255,.45);--glass-border:rgba(255,255,255,.6);
+  --shadow:0 8px 32px rgba(92,68,50,.08);
+  --shadow-lg:0 16px 48px rgba(92,68,50,.12);
+  --radius:16px;--radius-sm:10px;--radius-xs:6px;
+  --transition:all .3s cubic-bezier(.4,0,.2,1);
+  --font-body:'Inter',system-ui,sans-serif;
+  --font-heading:'Playfair Display',Georgia,serif;
+}
+html{scroll-behavior:smooth}
+body{font-family:var(--font-body);background:var(--bg);color:var(--text);line-height:1.6;overflow-x:hidden}
 
-  header{background:var(--accent);color:#fff;padding:14px 20px;display:flex;align-items:center;gap:12px;flex-shrink:0}
-  header svg{width:28px;height:28px;flex-shrink:0}
-  header h1{font-size:17px;font-weight:600;letter-spacing:.3px}
-  header span{font-size:12px;opacity:.75;margin-left:auto}
+/* Dark Mode */
+body.dark{--bg:#1a1614;--bg2:#252019;--primary:#DCC8B2;--dark:#F9F5F0;
+  --accent:#7A5C43;--text:#EFE6DD;--muted:#999;
+  --card:rgba(40,34,28,.65);--card-solid:#2a231c;
+  --glass:rgba(40,34,28,.55);--glass-border:rgba(92,68,50,.4);
+  --shadow:0 8px 32px rgba(0,0,0,.25);--shadow-lg:0 16px 48px rgba(0,0,0,.35)}
 
-  #chat{flex:1;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:8px}
-  .msg{max-width:78%;padding:10px 14px;border-radius:var(--radius);word-wrap:break-word;white-space:pre-wrap}
-  .msg.user{align-self:flex-end;background:var(--user-bg);border:1px solid var(--border)}
-  .msg.bot{align-self:flex-start;background:var(--bot-bg);border:1px solid var(--border);box-shadow:0 1px 3px rgba(0,0,0,.06)}
-  .msg.error{align-self:flex-start;background:#fef2f2;border:1px solid #fca5a5;color:#991b1b}
-  .msg.system{align-self:center;background:transparent;color:var(--muted);font-size:13px;padding:4px 8px}
+/* ---- NAV ---- */
+nav{position:fixed;top:0;left:0;right:0;z-index:100;padding:0 clamp(20px,4vw,60px);height:72px;display:flex;align-items:center;justify-content:space-between;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);background:rgba(249,245,240,.8);border-bottom:1px solid rgba(220,200,178,.3);transition:var(--transition)}
+body.dark nav{background:rgba(26,22,20,.85)}
+nav .logo{display:flex;align-items:center;gap:12px;text-decoration:none;color:var(--text)}
+nav .logo-icon{width:36px;height:36px;background:var(--primary);border-radius:10px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:15px;font-family:var(--font-heading)}
+nav .logo-text{font-family:var(--font-heading);font-size:18px;font-weight:600;color:var(--text)}
+nav .nav-links{display:flex;gap:32px;align-items:center}
+nav .nav-links a{text-decoration:none;color:var(--muted);font-size:14px;font-weight:500;transition:var(--transition);position:relative}
+nav .nav-links a:hover{color:var(--primary)}
+nav .nav-links a::after{content:'';position:absolute;bottom:-4px;left:0;width:0;height:2px;background:var(--primary);border-radius:1px;transition:var(--transition)}
+nav .nav-links a:hover::after{width:100%}
+.dark-toggle{width:44px;height:24px;border-radius:12px;background:var(--accent);border:none;cursor:pointer;position:relative;transition:var(--transition)}
+.dark-toggle::after{content:'';position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;transition:var(--transition);box-shadow:0 2px 4px rgba(0,0,0,.15)}
+body.dark .dark-toggle::after{left:23px;background:var(--dark)}
 
-  #input-bar{display:flex;gap:8px;padding:12px 16px;border-top:1px solid var(--border);background:var(--surface);flex-shrink:0}
-  #user-input{flex:1;padding:10px 14px;border:1px solid var(--border);border-radius:var(--radius);font-size:15px;font-family:inherit;resize:none;outline:none}
-  #user-input:focus{border-color:var(--accent)}
-  #send-btn{padding:10px 20px;background:var(--accent);color:#fff;border:none;border-radius:var(--radius);font-size:15px;font-weight:500;cursor:pointer;flex-shrink:0}
-  #send-btn:disabled{opacity:.5;cursor:default}
-  #send-btn:hover:not(:disabled){background:var(--accent-light)}
+/* ---- HERO ---- */
+.hero{min-height:100vh;display:flex;align-items:center;justify-content:center;text-align:center;padding:120px 24px 80px;position:relative;overflow:hidden}
+.hero-bg{position:absolute;inset:0;overflow:hidden}
+.hero-bg .shape{position:absolute;border-radius:50%;opacity:.15;animation:float 20s ease-in-out infinite}
+.hero-bg .s1{width:500px;height:500px;background:var(--accent);top:-10%;right:-5%;animation-delay:0s}
+.hero-bg .s2{width:350px;height:350px;background:var(--primary);bottom:10%;left:-8%;animation-delay:-7s}
+.hero-bg .s3{width:200px;height:200px;background:var(--dark);top:40%;right:20%;animation-delay:-14s}
+@keyframes float{0%,100%{transform:translate(0,0) scale(1)}33%{transform:translate(30px,-40px) scale(1.05)}66%{transform:translate(-20px,30px) scale(.95)}}
+.hero-content{position:relative;z-index:1;max-width:720px}
+.hero-badge{display:inline-flex;align-items:center;gap:8px;padding:6px 16px;border-radius:999px;background:var(--card);backdrop-filter:blur(10px);border:1px solid var(--glass-border);font-size:13px;font-weight:500;color:var(--primary);margin-bottom:28px;animation:fadeUp .8s ease-out}
+.hero-badge .dot{width:8px;height:8px;border-radius:50%;background:#6ee7b7;animation:pulse 2s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.hero h1{font-family:var(--font-heading);font-size:clamp(40px,6vw,72px);font-weight:600;line-height:1.1;color:var(--text);margin-bottom:20px;animation:fadeUp .8s ease-out .1s both}
+.hero h1 em{font-style:italic;color:var(--primary)}
+.hero p{font-size:clamp(16px,2vw,19px);color:var(--muted);max-width:540px;margin:0 auto 36px;line-height:1.7;animation:fadeUp .8s ease-out .2s both}
+.hero-btns{display:flex;gap:16px;justify-content:center;flex-wrap:wrap;animation:fadeUp .8s ease-out .3s both}
+.btn{padding:14px 32px;border-radius:999px;font-size:15px;font-weight:600;font-family:var(--font-body);cursor:pointer;transition:var(--transition);text-decoration:none;border:none;display:inline-flex;align-items:center;gap:8px}
+.btn-primary{background:var(--primary);color:#fff;box-shadow:0 4px 16px rgba(122,92,67,.3)}
+.btn-primary:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(122,92,67,.4)}
+.btn-secondary{background:var(--card);color:var(--text);border:1px solid var(--glass-border);backdrop-filter:blur(10px)}
+.btn-secondary:hover{transform:translateY(-2px);background:var(--glass)}
+@keyframes fadeUp{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}
 
-  #disclosure{background:#fff;border-top:1px solid var(--border);padding:8px 16px;font-size:11.5px;color:var(--muted);text-align:center;flex-shrink:0;line-height:1.45}
+/* ---- SECTIONS ---- */
+section{padding:100px 24px}
+.section-header{text-align:center;margin-bottom:64px}
+.section-header h2{font-family:var(--font-heading);font-size:clamp(28px,4vw,42px);font-weight:600;color:var(--text);margin-bottom:12px}
+.section-header p{color:var(--muted);font-size:16px;max-width:520px;margin:0 auto}
+.container{max-width:1120px;margin:0 auto}
 
-  .live-badge{display:none;align-self:flex-start;background:#ecfdf5;color:#065f46;border:1px solid #6ee7b7;border-radius:var(--radius);padding:3px 10px;font-size:11px;font-weight:600;letter-spacing:.3px;margin-top:2px}
-  .live-badge.show{display:inline-block}
+/* ---- FEATURES ---- */
+.features-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:24px}
+.feature-card{background:var(--card);backdrop-filter:blur(16px);border:1px solid var(--glass-border);border-radius:var(--radius);padding:36px 28px;transition:var(--transition);cursor:default}
+.feature-card:hover{transform:translateY(-6px);box-shadow:var(--shadow-lg)}
+.feature-icon{width:56px;height:56px;border-radius:14px;background:linear-gradient(135deg,var(--accent),var(--bg2));display:flex;align-items:center;justify-content:center;font-size:24px;margin-bottom:20px;color:var(--primary)}
+.feature-card h3{font-family:var(--font-heading);font-size:20px;font-weight:600;margin-bottom:10px;color:var(--text)}
+.feature-card p{color:var(--muted);font-size:14px;line-height:1.7}
 
-  .typing{display:inline-block}
-  .typing::after{content:"";animation:blink 1s step-end infinite}
-  @keyframes blink{50%{opacity:0}}
+/* ---- STATS ---- */
+.stats-section{background:var(--bg2)}
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:32px;text-align:center}
+.stat-item h3{font-family:var(--font-heading);font-size:clamp(36px,5vw,52px);font-weight:700;color:var(--primary);margin-bottom:8px}
+.stat-item p{color:var(--muted);font-size:14px;font-weight:500;text-transform:uppercase;letter-spacing:1px}
 
-  @media(max-width:600px){
-    .msg{max-width:92%}
-    header h1{font-size:15px}
-  }
+/* ---- WHY CHOOSE ---- */
+.why-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:20px}
+.why-card{background:var(--card);backdrop-filter:blur(12px);border:1px solid var(--glass-border);border-radius:var(--radius);padding:28px 24px;text-align:center;transition:var(--transition)}
+.why-card:hover{transform:translateY(-4px);box-shadow:var(--shadow)}
+.why-card .icon{font-size:32px;margin-bottom:14px}
+.why-card h4{font-family:var(--font-heading);font-size:17px;font-weight:600;margin-bottom:8px;color:var(--text)}
+.why-card p{color:var(--muted);font-size:13px;line-height:1.6}
+
+/* ---- FOOTER ---- */
+footer{background:var(--dark);color:rgba(255,255,255,.7);text-align:center;padding:32px 24px;font-size:13px}
+body:not(.dark) footer{background:#3d2e22;color:rgba(255,255,255,.6)}
+
+/* ============================================================
+   CHATBOT SECTION
+   ============================================================ */
+.chat-section{display:flex;justify-content:center;padding:60px 24px 100px}
+.chatbot{width:100%;max-width:520px;background:var(--card);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border:1px solid var(--glass-border);border-radius:24px;box-shadow:var(--shadow-lg);display:flex;flex-direction:column;height:680px;overflow:hidden;animation:fadeUp .6s ease-out}
+
+/* Chat Header */
+.chat-header{padding:18px 20px;display:flex;align-items:center;gap:14px;border-bottom:1px solid rgba(220,200,178,.25);background:rgba(255,255,255,.3);flex-shrink:0}
+.chat-avatar{width:42px;height:42px;border-radius:12px;background:linear-gradient(135deg,var(--primary),var(--dark));display:flex;align-items:center;justify-content:center;color:#fff;font-size:18px;flex-shrink:0}
+.chat-header-info{flex:1}
+.chat-header-info h3{font-family:var(--font-heading);font-size:15px;font-weight:600;color:var(--text);line-height:1.2}
+.chat-header-info .status{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted)}
+.chat-header-info .status .online{width:7px;height:7px;border-radius:50%;background:#6ee7b7;flex-shrink:0}
+.chat-header-actions{display:flex;gap:4px}
+.chat-header-actions button{width:32px;height:32px;border-radius:8px;border:none;background:transparent;color:var(--muted);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;transition:var(--transition)}
+.chat-header-actions button:hover{background:rgba(122,92,67,.1);color:var(--primary)}
+
+/* Chat Messages */
+.chat-messages{flex:1;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:6px;scroll-behavior:smooth}
+.chat-messages::-webkit-scrollbar{width:5px}
+.chat-messages::-webkit-scrollbar-track{background:transparent}
+.chat-messages::-webkit-scrollbar-thumb{background:var(--accent);border-radius:99px}
+.msg{max-width:82%;padding:12px 16px;border-radius:18px;font-size:14px;line-height:1.55;animation:msgIn .35s ease-out;word-wrap:break-word;white-space:pre-wrap}
+@keyframes msgIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.msg.user{align-self:flex-end;background:var(--primary);color:#fff;border-bottom-right-radius:6px}
+.msg.bot{align-self:flex-start;background:var(--card-solid);border:1px solid rgba(220,200,178,.3);border-bottom-left-radius:6px;color:var(--text);box-shadow:0 2px 8px rgba(0,0,0,.04)}
+.msg.error{align-self:flex-start;background:#fef2f2;border:1px solid #fca5a5;color:#991b1b}
+.msg.system{align-self:center;background:transparent;color:var(--muted);font-size:12px;padding:6px 12px}
+.msg .timestamp{display:block;font-size:10px;opacity:.5;margin-top:4px}
+.msg.user .timestamp{text-align:right;color:rgba(255,255,255,.6)}
+.msg.bot .timestamp{color:var(--muted)}
+
+/* Typing Indicator */
+.typing-indicator{display:flex;gap:4px;padding:14px 18px;align-self:flex-start}
+.typing-indicator span{width:8px;height:8px;border-radius:50%;background:var(--accent);animation:bounce .6s ease-in-out infinite}
+.typing-indicator span:nth-child(2){animation-delay:.15s}
+.typing-indicator span:nth-child(3){animation-delay:.3s}
+@keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+
+/* Live Badge */
+.live-badge{display:none;align-self:flex-start;background:rgba(110,231,183,.15);color:#065f46;border:1px solid rgba(110,231,183,.4);border-radius:999px;padding:3px 12px;font-size:10px;font-weight:600;letter-spacing:.5px;margin-top:2px;animation:msgIn .3s ease-out}
+body.dark .live-badge{color:#6ee7b7}
+.live-badge.show{display:inline-block}
+
+/* Chat Input */
+.chat-input-area{padding:14px 16px;border-top:1px solid rgba(220,200,178,.2);display:flex;align-items:flex-end;gap:8px;background:rgba(255,255,255,.25);flex-shrink:0}
+.chat-input-wrap{flex:1;display:flex;align-items:flex-end;background:var(--card-solid);border:1px solid rgba(220,200,178,.35);border-radius:14px;padding:4px 4px 4px 14px;transition:var(--transition)}
+.chat-input-wrap:focus-within{border-color:var(--primary);box-shadow:0 0 0 3px rgba(122,92,67,.1)}
+.chat-input-wrap textarea{flex:1;border:none;outline:none;background:transparent;font-family:var(--font-body);font-size:14px;resize:none;padding:8px 0;line-height:1.5;max-height:80px;color:var(--text)}
+.input-actions{display:flex;gap:2px;padding-bottom:4px}
+.input-actions button{width:30px;height:30px;border-radius:8px;border:none;background:transparent;color:var(--muted);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:15px;transition:var(--transition);flex-shrink:0}
+.input-actions button:hover{background:rgba(122,92,67,.08);color:var(--primary)}
+.send-btn{width:42px;height:42px;border-radius:12px;border:none;background:var(--primary);color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:18px;transition:var(--transition);flex-shrink:0}
+.send-btn:hover{background:var(--dark);transform:scale(1.05)}
+.send-btn:disabled{opacity:.4;cursor:default;transform:none}
+.char-count{font-size:10px;color:var(--muted);text-align:right;padding:0 4px 2px 0;flex-shrink:0;width:100%}
+
+/* ---- RESPONSIVE ---- */
+@media(max-width:768px){
+  nav .nav-links{display:none}
+  .hero h1{font-size:36px}
+  .chatbot{height:85vh;max-width:100%;border-radius:20px;margin:0 8px}
+  .chat-messages{padding:14px}
+  .msg{max-width:90%}
+}
 </style>
 </head>
 <body>
 
-<header>
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M3 21h18"/><path d="M5 21V7l7-4 7 4v14"/><rect x="9" y="9" width="2" height="2"/><rect x="13" y="9" width="2" height="2"/><rect x="9" y="13" width="2" height="2"/><rect x="13" y="13" width="2" height="2"/>
-  </svg>
-  <h1>Rockwell Site Surveys</h1>
-  <span>Support Assistant</span>
-</header>
+<!-- NAV -->
+<nav>
+  <a href="#" class="logo">
+    <div class="logo-icon">R</div>
+    <span class="logo-text">Rockwell</span>
+  </a>
+  <div class="nav-links">
+    <a href="#home">Home</a>
+    <a href="#services">Services</a>
+    <a href="#why">Why Us</a>
+    <a href="#chatbot">Support</a>
+    <a href="#contact">Contact</a>
+    <button class="dark-toggle" id="darkToggle" aria-label="Toggle dark mode"></button>
+  </div>
+</nav>
 
-<div id="chat">
-  <div class="msg system">Welcome. I can help with pricing, availability, services, and site-survey queries including seismic conditions.</div>
-  <div id="live-badge" class="live-badge">LIVE DATA FETCHED</div>
-</div>
+<!-- HERO -->
+<section class="hero" id="home">
+  <div class="hero-bg">
+    <div class="shape s1"></div>
+    <div class="shape s2"></div>
+    <div class="shape s3"></div>
+  </div>
+  <div class="hero-content">
+    <div class="hero-badge"><span class="dot"></span> AI-Powered Support</div>
+    <h1>Smart <em>Customer</em><br>Support</h1>
+    <p>Professional site-survey assistance powered by live data and artificial intelligence. Instant answers, real-time availability, and expert guidance — available 24/7.</p>
+    <div class="hero-btns">
+      <a href="#chatbot" class="btn btn-primary">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        Start Chatting
+      </a>
+      <a href="#services" class="btn btn-secondary">Browse Services</a>
+    </div>
+  </div>
+</section>
 
-<div id="input-bar">
-  <textarea id="user-input" rows="1" placeholder="Type your question…"></textarea>
-  <button id="send-btn">Send</button>
-</div>
+<!-- FEATURES -->
+<section id="services">
+  <div class="container">
+    <div class="section-header">
+      <h2>Powered by Intelligence</h2>
+      <p>Everything you need for seamless site-survey support, delivered instantly.</p>
+    </div>
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feature-icon">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        </div>
+        <h3>24/7 AI Assistant</h3>
+        <p>Our intelligent support bot is always online, ready to answer your questions about services, pricing, and availability at any hour.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+        </div>
+        <h3>Live Data</h3>
+        <p>Every answer pulls real-time data directly from our operations sheets and public APIs — never cached, always current.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+        </div>
+        <h3>Instant Answers</h3>
+        <p>Get immediate, accurate responses powered by advanced language models — no wait times, no phone queues.</p>
+      </div>
+    </div>
+  </div>
+</section>
 
-<div id="disclosure">
-  ⚠ This assistant uses AI and live third-party data (Google Sheets, USGS); please verify important details independently.
-</div>
+<!-- STATS -->
+<section class="stats-section">
+  <div class="container">
+    <div class="stats-grid">
+      <div class="stat-item"><h3 class="counter" data-target="98">0</h3><p>Customer Satisfaction</p></div>
+      <div class="stat-item"><h3 class="counter" data-target="5000">0</h3><p>Questions Answered</p></div>
+      <div class="stat-item"><h3 class="counter" data-target="24" data-suffix="/7">0</h3><p>Availability</p></div>
+      <div class="stat-item"><h3 class="counter" data-target="150">0</h3><p>Services Listed</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- WHY CHOOSE US -->
+<section id="why">
+  <div class="container">
+    <div class="section-header">
+      <h2>Why Choose Rockwell</h2>
+      <p>Trusted by engineers and project managers across Ireland and the UK.</p>
+    </div>
+    <div class="why-grid">
+      <div class="why-card">
+        <div class="icon">🛡</div>
+        <h4>Verified Data</h4>
+        <p>All information sourced from live, authoritative data feeds.</p>
+      </div>
+      <div class="why-card">
+        <div class="icon">⚡</div>
+        <h4>Instant Response</h4>
+        <p>AI-powered answers in seconds, not hours.</p>
+      </div>
+      <div class="why-card">
+        <div class="icon">🌍</div>
+        <h4>Seismic Insights</h4>
+        <p>Real-time USGS earthquake data for site risk assessment.</p>
+      </div>
+      <div class="why-card">
+        <div class="icon">🔒</div>
+        <h4>Privacy First</h4>
+        <p>No API keys, no tracking, no data stored on servers.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CHATBOT -->
+<section id="chatbot">
+  <div class="container">
+    <div class="section-header">
+      <h2>How Can We Help?</h2>
+      <p>Ask about pricing, availability, services, or site conditions.</p>
+    </div>
+  </div>
+  <div class="chat-section">
+    <div class="chatbot">
+      <!-- Header -->
+      <div class="chat-header">
+        <div class="chat-avatar">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M5 21V7l7-4 7 4v14"/><rect x="9" y="9" width="2" height="2"/><rect x="13" y="9" width="2" height="2"/><rect x="9" y="13" width="2" height="2"/><rect x="13" y="13" width="2" height="2"/></svg>
+        </div>
+        <div class="chat-header-info">
+          <h3>Rockwell Assistant</h3>
+          <div class="status"><span class="online"></span> AI Assistant Online</div>
+        </div>
+        <div class="chat-header-actions">
+          <button id="settingsBtn" title="Settings" aria-label="Settings">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          </button>
+          <button id="minimizeBtn" title="Minimize" aria-label="Minimize">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Messages -->
+      <div class="chat-messages" id="chat">
+        <div class="msg system">Welcome to Rockwell Site Surveys. Ask about pricing, services, availability, or seismic conditions.</div>
+        <div id="live-badge" class="live-badge">● LIVE DATA</div>
+      </div>
+
+      <!-- Input -->
+      <div class="chat-input-area">
+        <div class="chat-input-wrap">
+          <textarea id="user-input" rows="1" placeholder="Type your message…" maxlength="500"></textarea>
+          <div class="input-actions">
+            <button id="attachBtn" title="Attach file" aria-label="Attach file">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+            </button>
+            <button id="micBtn" title="Voice input" aria-label="Voice input">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+            </button>
+            <button id="emojiBtn" title="Emoji" aria-label="Emoji">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
+            </button>
+          </div>
+        </div>
+        <button class="send-btn" id="send-btn" title="Send" aria-label="Send message">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+        </button>
+      </div>
+      <div style="padding:0 20px 10px;display:flex;justify-content:space-between">
+        <span style="font-size:10px;color:var(--muted)">⚠ AI &amp; live data — verify important details</span>
+        <span class="char-count" id="charCount">0/500</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer id="contact">
+  <p>&copy; 2026 Rockwell Site Surveys. All rights reserved.</p>
+</footer>
 
 <script>
 (function(){
-  /* ---- DOM refs ---- */
+  /* ============ DARK MODE ============ */
+  const darkBtn = document.getElementById("darkToggle");
+  const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+  if(localStorage.getItem("dark")==="true" || (!localStorage.getItem("dark") && prefersDark)) document.body.classList.add("dark");
+  darkBtn.addEventListener("click",()=>{
+    document.body.classList.toggle("dark");
+    localStorage.setItem("dark", document.body.classList.contains("dark"));
+  });
+
+  /* ============ ANIMATED COUNTERS ============ */
+  const counters = document.querySelectorAll(".counter");
+  const counterObs = new IntersectionObserver((entries)=>{
+    entries.forEach(e=>{
+      if(!e.isIntersecting) return;
+      const el = e.target;
+      const target = +el.dataset.target;
+      const suffix = el.dataset.suffix || "%";
+      let current = 0;
+      const step = Math.max(1, Math.floor(target / 60));
+      const timer = setInterval(()=>{
+        current += step;
+        if(current >= target){ current = target; clearInterval(timer); }
+        el.textContent = current.toLocaleString() + suffix;
+      }, 20);
+      counterObs.unobserve(el);
+    });
+  },{threshold:.5});
+  counters.forEach(c=>counterObs.observe(c));
+
+  /* ============ DOM refs ============ */
   const chat      = document.getElementById("chat");
   const input     = document.getElementById("user-input");
   const sendBtn   = document.getElementById("send-btn");
   const liveBadge = document.getElementById("live-badge");
+  const charCount = document.getElementById("charCount");
 
-  /* ---- Helpers ---- */
+  input.addEventListener("input",()=>{ charCount.textContent = input.value.length + "/500"; });
+
+  /* ============ HELPERS ============ */
   function scrollToBottom(){ chat.scrollTop = chat.scrollHeight; }
+
+  function timestamp(){ return new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}); }
 
   function addMsg(text, cls){
     const d = document.createElement("div");
     d.className = "msg " + cls;
     d.textContent = text;
+    const ts = document.createElement("span");
+    ts.className = "timestamp";
+    ts.textContent = timestamp();
+    d.appendChild(ts);
     chat.appendChild(d);
     scrollToBottom();
     return d;
   }
 
   function showTyping(){
-    const d = addMsg("", "bot");
-    d.innerHTML = '<span class="typing">Assistant is thinking</span>';
-    return d;
+    const wrap = document.createElement("div");
+    wrap.className = "msg bot";
+    wrap.innerHTML = '<div class="typing-indicator"><span></span><span></span><span></span></div>';
+    chat.appendChild(wrap);
+    scrollToBottom();
+    return wrap;
   }
 
-  /* ---- CSV Parser (handles quoted commas & newlines) ---- */
+  /* ============ CSV PARSER ============ */
   function parseCSV(text){
-    const rows = [];
-    let cur = "";
-    let row = [];
-    let inQ = false;
+    const rows=[];let cur="";let row=[];let inQ=false;
     for(let i=0;i<text.length;i++){
-      const ch = text[i];
-      if(inQ){
-        if(ch === '"'){
-          if(i+1 < text.length && text[i+1] === '"'){ cur += '"'; i++; }
-          else inQ = false;
-        } else cur += ch;
-      } else {
-        if(ch === '"') inQ = true;
-        else if(ch === ","){ row.push(cur); cur=""; }
-        else if(ch === "\n" || (ch === "\r" && text[i+1]==="\n")){
-          row.push(cur); cur="";
-          rows.push(row); row=[];
-          if(ch==="\r") i++;
-        } else cur += ch;
-      }
+      const ch=text[i];
+      if(inQ){if(ch==='"'){if(i+1<text.length&&text[i+1]==='"'){cur+='"';i++}else inQ=false}else cur+=ch}
+      else{if(ch==='"')inQ=true;else if(ch===","){row.push(cur);cur=""}else if(ch==="\n"||(ch==="\r"&&text[i+1]==="\n")){row.push(cur);cur="";rows.push(row);row=[];if(ch==="\r")i++}else cur+=ch}
     }
-    if(cur || row.length){ row.push(cur); rows.push(row); }
+    if(cur||row.length){row.push(cur);rows.push(row)}
     return rows;
   }
 
-  /* ---- Keyword detection ---- */
+  /* ============ KEYWORD DETECTION ============ */
   const SHEET_KW = /price|fee|cost|quote|available|availability|stock|slot|service|region|book|booking|survey.*price|how much|pricing/i;
   const QUAKE_KW = /earthquake|seismic|ground.*(motion|shaking)|tremor|risk|usgs|magnitude|richter/i;
 
-  /* ---- Fetch Google Sheet CSV ---- */
+  /* ============ FETCH GOOGLE SHEET (no-cache) ============ */
   const SHEET_URL = "https://docs.google.com/spreadsheets/d/1RsgmK5VoY2uQI-636AXH2LvwBHGDDsyp76T1Cu1D37U/gviz/tq?tqx=out:csv";
 
   async function fetchSheetData(){
-    const cacheBust = SHEET_URL + "&_t=" + Date.now();
-    console.log("[Sheet] Fetching live CSV at", new Date().toISOString(), "→", cacheBust);
-    const res = await fetch(cacheBust);
+    const url = SHEET_URL + "&t=" + Date.now();
+    console.log("[Sheet] Fetching live CSV at", new Date().toISOString(), "→", url);
+    const res = await fetch(url, { cache: "no-store" });
     if(!res.ok) throw new Error("Sheet fetch failed: " + res.status);
     const csv = await res.text();
     console.log("[Sheet] Raw CSV (" + csv.length + " chars):", csv);
@@ -148,33 +455,27 @@
     return "Google Sheet data:\nHeaders: " + headers + "\n" + body + (rows.length > 30 ? "\n…(" + (rows.length-1) + " total rows)" : "");
   }
 
-  /* ---- Fetch USGS Earthquake Data ---- */
-  const DEFAULT_LAT = 53.3498;
-  const DEFAULT_LON = -6.2603;
-  const DEFAULT_RAD = 500;
+  /* ============ FETCH USGS EARTHQUAKE ============ */
+  const DEFAULT_LAT = 53.3498, DEFAULT_LON = -6.2603, DEFAULT_RAD = 500;
 
   async function fetchQuakeData(userText){
-    let lat = DEFAULT_LAT, lon = DEFAULT_LON, radius = DEFAULT_RAD;
-    const coordMatch = userText.match(/latitude[:\s]*([-\d.]+).*longitude[:\s]*([-\d.]+)/i)
-                    || userText.match(/lat[:\s]*([-\d.]+).*lon[:\s]*([-\d.]+)/i);
-    const radMatch = userText.match(/radius[:\s]*(\d+)/i);
-    if(coordMatch){ lat = parseFloat(coordMatch[1]); lon = parseFloat(coordMatch[2]); }
-    if(radMatch) radius = parseInt(radMatch[1]);
-    const url = `https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&latitude=${lat}&longitude=${lon}&maxradiuskm=${radius}&orderby=time&limit=5`;
-    const res = await fetch(url);
-    if(!res.ok) throw new Error("USGS fetch failed: " + res.status);
-    const json = await res.json();
-    if(!json.features || !json.features.length) return "No recent earthquakes found within " + radius + " km of (" + lat + ", " + lon + ").";
-    const lines = json.features.map(f => {
-      const p = f.properties;
-      const c = f.geometry.coordinates;
-      const t = new Date(p.time).toUTCString();
-      return `M${p.mag} — ${p.place} | Lat ${c[1]}, Lon ${c[0]}, Depth ${c[2]}km | ${t} | ${p.tsunami ? "Tsunami flagged" : "No tsunami"}`;
-    });
-    return "Recent earthquakes (within " + radius + " km of " + lat + "," + lon + "):\n" + lines.join("\n");
+    let lat=DEFAULT_LAT,lon=DEFAULT_LON,radius=DEFAULT_RAD;
+    const cm=userText.match(/latitude[:\s]*([-\d.]+).*longitude[:\s]*([-\d.]+)/i)||userText.match(/lat[:\s]*([-\d.]+).*lon[:\s]*([-\d.]+)/i);
+    const rm=userText.match(/radius[:\s]*(\d+)/i);
+    if(cm){lat=parseFloat(cm[1]);lon=parseFloat(cm[2])}
+    if(rm)radius=parseInt(rm[1]);
+    const url=`https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&latitude=${lat}&longitude=${lon}&maxradiuskm=${radius}&orderby=time&limit=5`;
+    console.log("[USGS] Fetching earthquake data:", url);
+    const res=await fetch(url);
+    if(!res.ok)throw new Error("USGS fetch failed: "+res.status);
+    const json=await res.json();
+    console.log("[USGS] Response:", json);
+    if(!json.features||!json.features.length)return"No recent earthquakes found within "+radius+" km of ("+lat+", "+lon+").";
+    const lines=json.features.map(f=>{const p=f.properties;const c=f.geometry.coordinates;const t=new Date(p.time).toUTCString();return`M${p.mag} — ${p.place} | Lat ${c[1]}, Lon ${c[0]}, Depth ${c[2]}km | ${t} | ${p.tsunami?"Tsunami flagged":"No tsunami"}`});
+    return"Recent earthquakes (within "+radius+" km of "+lat+","+lon+"):\n"+lines.join("\n");
   }
 
-  /* ---- Build & send prompt ---- */
+  /* ============ SYSTEM PROMPT ============ */
   const SYSTEM_PROMPT = `You are a helpful, professional support assistant for Rockwell Site Surveys, an engineering and site-survey business operating in Ireland and the UK. Be concise, factual, and courteous.
 
 IMPORTANT RULES:
@@ -183,11 +484,11 @@ IMPORTANT RULES:
 - If both pricing/availability data and seismic data are provided, combine them into one coherent answer.
 - Never fabricate information you were not given. If you don't know, say so.`;
 
+  /* ============ SEND ============ */
   async function send(){
     const text = input.value.trim();
     if(!text) return;
-    input.value = "";
-    autoResize();
+    input.value = ""; charCount.textContent = "0/500"; autoResize();
     addMsg(text, "user");
     sendBtn.disabled = true;
 
@@ -198,8 +499,8 @@ IMPORTANT RULES:
     const typing = showTyping();
 
     const promises = [];
-    if(needSheet) promises.push(fetchSheetData().then(d => { dataBits.push("SHEET_DATA:\n" + d); liveBadge.classList.add("show"); console.log("[Sheet] Injected into prompt ✓"); }).catch(e => { dataBits.push("SHEET_DATA_ERROR: " + e.message); console.error("[Sheet] Fetch failed:", e.message); }));
-    if(needQuake) promises.push(fetchQuakeData(text).then(d => dataBits.push("SEISMIC_DATA:\n" + d)).catch(e => dataBits.push("SEISMIC_DATA_ERROR: " + e.message)));
+    if(needSheet) promises.push(fetchSheetData().then(d=>{dataBits.push("SHEET_DATA:\n"+d);liveBadge.classList.add("show");console.log("[Sheet] Injected into prompt ✓")}).catch(e=>{dataBits.push("SHEET_DATA_ERROR: "+e.message);console.error("[Sheet] Fetch failed:",e.message)}));
+    if(needQuake) promises.push(fetchQuakeData(text).then(d=>dataBits.push("SEISMIC_DATA:\n"+d)).catch(e=>dataBits.push("SEISMIC_DATA_ERROR: "+e.message)));
     await Promise.all(promises);
 
     if(!needSheet) liveBadge.classList.remove("show");
@@ -210,9 +511,15 @@ IMPORTANT RULES:
 
     try{
       const resp = await puter.ai.chat(prompt);
-      typing.textContent = (typeof resp === "string" ? resp : resp?.message?.content || resp?.content || JSON.stringify(resp));
-      typing.className = "msg bot";
-    } catch(e){
+      const bubble = document.createElement("div");
+      bubble.className = "msg bot";
+      bubble.textContent = (typeof resp==="string"?resp:resp?.message?.content||resp?.content||JSON.stringify(resp));
+      const ts = document.createElement("span");
+      ts.className = "timestamp"; ts.textContent = timestamp();
+      bubble.appendChild(ts);
+      typing.replaceWith(bubble);
+      scrollToBottom();
+    }catch(e){
       typing.textContent = "Sorry — I hit an error contacting the AI service. Please try again.";
       typing.className = "msg error";
     }
@@ -220,18 +527,30 @@ IMPORTANT RULES:
     input.focus();
   }
 
-  /* ---- Auto-resize textarea ---- */
-  function autoResize(){
-    input.style.height = "auto";
-    input.style.height = Math.min(input.scrollHeight, 120) + "px";
-  }
+  /* ============ AUTO RESIZE ============ */
+  function autoResize(){ input.style.height="auto"; input.style.height=Math.min(input.scrollHeight,80)+"px"; }
   input.addEventListener("input", autoResize);
 
-  /* ---- Event wiring ---- */
+  /* ============ EVENTS ============ */
   sendBtn.addEventListener("click", send);
-  input.addEventListener("keydown", function(e){
-    if(e.key === "Enter" && !e.shiftKey){ e.preventDefault(); send(); }
+  input.addEventListener("keydown", e=>{ if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();send()} });
+
+  document.getElementById("minimizeBtn").addEventListener("click",()=>{
+    const cs = document.querySelector(".chatbot");
+    const msgs = document.querySelector(".chat-messages");
+    const inp = document.querySelector(".chat-input-area");
+    const chr = document.querySelector(".char-count")?.parentElement;
+    const hidden = msgs.style.display==="none";
+    msgs.style.display=hidden?"flex":"none";
+    inp.style.display=hidden?"flex":"none";
+    if(chr) chr.style.display=hidden?"flex":"none";
+    cs.style.height=hidden?"680px":"auto";
   });
+
+  document.getElementById("attachBtn").addEventListener("click",()=>alert("File attachment is a demo feature."));
+  document.getElementById("micBtn").addEventListener("click",()=>alert("Voice input is a demo feature."));
+  document.getElementById("emojiBtn").addEventListener("click",()=>alert("Emoji picker is a demo feature."));
+  document.getElementById("settingsBtn").addEventListener("click",()=>alert("Settings panel is a demo feature."));
 
   input.focus();
 })();
