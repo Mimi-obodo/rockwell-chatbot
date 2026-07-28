@@ -127,7 +127,7 @@
 
   /* ============ KEYWORD DETECTION ============ */
   const SHEET_KW = /price|fee|cost|quote|available|availability|stock|slot|service|region|book|booking|survey.*price|how much|pricing/i;
-  const QUAKE_KW = /earthquake|seismic|ground.*(motion|shaking)|tremor|risk|usgs|magnitude|richter/i;
+  const QUAKE_KW = /earthquake|seismic|ground.*(motion|shaking)|tremor|risk|usgs|magnitude|richter|hazard|fault|liquefaction|seismic.*zone|ground.*stability|epicenter|magnitude|richter|plate.*tectonic|subduction|aftershock|foreshock|shaking|ground.*failure|landslide|tsunami|seismic.*hazard|risk.*assessment|site.*risk|ground.*motion|peak.*acceleration|pga|seismic.*design|seismic.*code/i;
 
   /* ============ FETCH GOOGLE SHEET (no-cache) ============ */
   const SHEET_URL = "https://docs.google.com/spreadsheets/d/1RsgmK5VoY2uQI-636AXH2LvwBHGDDsyp76T1Cu1D37U/gviz/tq?tqx=out:csv";
@@ -190,6 +190,38 @@
     return "Recent earthquakes within " + radius + " km of " + region.name + " (" + region.lat + "," + region.lon + "):\n" + lines.join("\n");
   }
 
+  /* ============ FETCH USGS EARTHQUAKE HAZARDS PAGE ============ */
+  const USGS_PAGES = [
+    "https://www.usgs.gov/programs/earthquake-hazards",
+    "https://www.usgs.gov/programs/earthquake-hazards/earthquake-hazards",
+    "https://www.usgs.gov/programs/earthquake-hazards/earthquake-risk"
+  ];
+
+  async function fetchUSGSPage() {
+    const results = [];
+    for (const pageUrl of USGS_PAGES) {
+      try {
+        console.log("[USGS Page] Fetching:", pageUrl);
+        const res = await fetch(pageUrl, { cache: "no-store" });
+        if (!res.ok) { console.log("[USGS Page] Skip", res.status, pageUrl); continue; }
+        const html = await res.text();
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, "text/html");
+        const main = doc.querySelector("main") || doc.querySelector(".page-content") || doc.querySelector("#main-content") || doc.body;
+        let text = main.innerText || main.textContent || "";
+        text = text.replace(/\s+/g, " ").trim();
+        if (text.length > 3000) text = text.substring(0, 3000) + "…";
+        const title = doc.querySelector("title")?.textContent || pageUrl;
+        results.push("SOURCE: " + title + "\nURL: " + pageUrl + "\nCONTENT: " + text);
+        console.log("[USGS Page] Got", text.length, "chars from", pageUrl);
+      } catch (e) {
+        console.error("[USGS Page] Failed:", pageUrl, e.message);
+      }
+    }
+    if (!results.length) return "USGS Earthquake Hazards pages could not be reached right now.";
+    return "USGS EARTHQUAKE HAZARDS INFORMATION:\n\n" + results.join("\n\n---\n\n");
+  }
+
   /* ============ SYSTEM PROMPT ============ */
   const SYSTEM_PROMPT = `You are a helpful, professional support assistant for Rockwell Site Surveys, an engineering and site-survey business operating in Ireland and the UK.
 
@@ -236,6 +268,13 @@ DATA RULES:
         dataBits.push("SEISMIC_DATA:\n" + d);
       }).catch(e => {
         dataBits.push("SEISMIC_DATA_ERROR: " + e.message);
+      })
+    );
+    if (needQuake) promises.push(
+      fetchUSGSPage().then(d => {
+        dataBits.push("USGS_REFERENCE:\n" + d);
+      }).catch(e => {
+        console.error("[USGS Page] Failed:", e.message);
       })
     );
     await Promise.all(promises);
