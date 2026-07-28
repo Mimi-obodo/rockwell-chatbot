@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rockwell Site Surveys — Support Assistant</title>
+<script src="https://js.puter.com/v2/"></script>
+<style>
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --bg:#f4f5f7;--surface:#fff;--border:#d0d5dd;--text:#1a1a2e;
+    --muted:#6b7280;--accent:#1e3a5f;--accent-light:#2d5a8e;
+    --user-bg:#e8eef5;--bot-bg:#fff;--radius:8px;
+  }
+  html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--text);font-size:15px;line-height:1.5}
+  body{display:flex;flex-direction:column}
+
+  header{background:var(--accent);color:#fff;padding:14px 20px;display:flex;align-items:center;gap:12px;flex-shrink:0}
+  header svg{width:28px;height:28px;flex-shrink:0}
+  header h1{font-size:17px;font-weight:600;letter-spacing:.3px}
+  header span{font-size:12px;opacity:.75;margin-left:auto}
+
+  #chat{flex:1;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:8px}
+  .msg{max-width:78%;padding:10px 14px;border-radius:var(--radius);word-wrap:break-word;white-space:pre-wrap}
+  .msg.user{align-self:flex-end;background:var(--user-bg);border:1px solid var(--border)}
+  .msg.bot{align-self:flex-start;background:var(--bot-bg);border:1px solid var(--border);box-shadow:0 1px 3px rgba(0,0,0,.06)}
+  .msg.error{align-self:flex-start;background:#fef2f2;border:1px solid #fca5a5;color:#991b1b}
+  .msg.system{align-self:center;background:transparent;color:var(--muted);font-size:13px;padding:4px 8px}
+
+  #input-bar{display:flex;gap:8px;padding:12px 16px;border-top:1px solid var(--border);background:var(--surface);flex-shrink:0}
+  #user-input{flex:1;padding:10px 14px;border:1px solid var(--border);border-radius:var(--radius);font-size:15px;font-family:inherit;resize:none;outline:none}
+  #user-input:focus{border-color:var(--accent)}
+  #send-btn{padding:10px 20px;background:var(--accent);color:#fff;border:none;border-radius:var(--radius);font-size:15px;font-weight:500;cursor:pointer;flex-shrink:0}
+  #send-btn:disabled{opacity:.5;cursor:default}
+  #send-btn:hover:not(:disabled){background:var(--accent-light)}
+
+  #disclosure{background:#fff;border-top:1px solid var(--border);padding:8px 16px;font-size:11.5px;color:var(--muted);text-align:center;flex-shrink:0;line-height:1.45}
+
+  .typing{display:inline-block}
+  .typing::after{content:"";animation:blink 1s step-end infinite}
+  @keyframes blink{50%{opacity:0}}
+
+  @media(max-width:600px){
+    .msg{max-width:92%}
+    header h1{font-size:15px}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M3 21h18"/><path d="M5 21V7l7-4 7 4v14"/><rect x="9" y="9" width="2" height="2"/><rect x="13" y="9" width="2" height="2"/><rect x="9" y="13" width="2" height="2"/><rect x="13" y="13" width="2" height="2"/>
+  </svg>
+  <h1>Rockwell Site Surveys</h1>
+  <span>Support Assistant</span>
+</header>
+
+<div id="chat">
+  <div class="msg system">Welcome. I can help with pricing, availability, services, and site-survey queries including seismic conditions.</div>
+</div>
+
+<div id="input-bar">
+  <textarea id="user-input" rows="1" placeholder="Type your question…"></textarea>
+  <button id="send-btn">Send</button>
+</div>
+
+<div id="disclosure">
+  ⚠ This assistant uses AI and live third-party data (Google Sheets, USGS); please verify important details independently.
+</div>
+
+<script>
+(function(){
+  /* ---- DOM refs ---- */
+  const chat      = document.getElementById("chat");
+  const input     = document.getElementById("user-input");
+  const sendBtn   = document.getElementById("send-btn");
+
+  /* ---- Helpers ---- */
+  function scrollToBottom(){ chat.scrollTop = chat.scrollHeight; }
+
+  function addMsg(text, cls){
+    const d = document.createElement("div");
+    d.className = "msg " + cls;
+    d.textContent = text;
+    chat.appendChild(d);
+    scrollToBottom();
+    return d;
+  }
+
+  function showTyping(){
+    const d = addMsg("", "bot");
+    d.innerHTML = '<span class="typing">Assistant is thinking</span>';
+    return d;
+  }
+
+  /* ---- CSV Parser (handles quoted commas & newlines) ---- */
+  function parseCSV(text){
+    const rows = [];
+    let cur = "";
+    let row = [];
+    let inQ = false;
+    for(let i=0;i<text.length;i++){
+      const ch = text[i];
+      if(inQ){
+        if(ch === '"'){
+          if(i+1 < text.length && text[i+1] === '"'){ cur += '"'; i++; }
+          else inQ = false;
+        } else cur += ch;
+      } else {
+        if(ch === '"') inQ = true;
+        else if(ch === ","){ row.push(cur); cur=""; }
+        else if(ch === "\n" || (ch === "\r" && text[i+1]==="\n")){
+          row.push(cur); cur="";
+          rows.push(row); row=[];
+          if(ch==="\r") i++;
+        } else cur += ch;
+      }
+    }
+    if(cur || row.length){ row.push(cur); rows.push(row); }
+    return rows;
+  }
+
+  /* ---- Keyword detection ---- */
+  const SHEET_KW = /price|fee|cost|available|stock|slot|service|survey.*price|how much|pricing|quote/i;
+  const QUAKE_KW = /earthquake|seismic|ground.*(motion|shaking)|tremor|risk|usgs|magnitude|richter/i;
+
+  /* ---- Fetch Google Sheet CSV ---- */
+  const SHEET_URL = "https://docs.google.com/spreadsheets/d/1RsgmK5VoY2uQI-636AXH2LvwBHGDDsyp76T1Cu1D37U/gviz/tq?tqx=out:csv";
+
+  async function fetchSheetData(){
+    const res = await fetch(SHEET_URL);
+    if(!res.ok) throw new Error("Sheet fetch failed: " + res.status);
+    const csv = await res.text();
+    const rows = parseCSV(csv);
+    if(rows.length < 2) return "No data rows found in sheet.";
+    const headers = rows[0].join(" | ");
+    const body = rows.slice(1, 30).map(r => r.join(" | ")).join("\n");
+    return "Google Sheet data:\nHeaders: " + headers + "\n" + body + (rows.length > 30 ? "\n…(" + (rows.length-1) + " total rows)" : "");
+  }
+
+  /* ---- Fetch USGS Earthquake Data ---- */
+  const DEFAULT_LAT = 53.3498;
+  const DEFAULT_LON = -6.2603;
+  const DEFAULT_RAD = 500;
+
+  async function fetchQuakeData(userText){
+    let lat = DEFAULT_LAT, lon = DEFAULT_LON, radius = DEFAULT_RAD;
+    const coordMatch = userText.match(/latitude[:\s]*([-\d.]+).*longitude[:\s]*([-\d.]+)/i)
+                    || userText.match(/lat[:\s]*([-\d.]+).*lon[:\s]*([-\d.]+)/i);
+    const radMatch = userText.match(/radius[:\s]*(\d+)/i);
+    if(coordMatch){ lat = parseFloat(coordMatch[1]); lon = parseFloat(coordMatch[2]); }
+    if(radMatch) radius = parseInt(radMatch[1]);
+    const url = `https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&latitude=${lat}&longitude=${lon}&maxradiuskm=${radius}&orderby=time&limit=5`;
+    const res = await fetch(url);
+    if(!res.ok) throw new Error("USGS fetch failed: " + res.status);
+    const json = await res.json();
+    if(!json.features || !json.features.length) return "No recent earthquakes found within " + radius + " km of (" + lat + ", " + lon + ").";
+    const lines = json.features.map(f => {
+      const p = f.properties;
+      const c = f.geometry.coordinates;
+      const t = new Date(p.time).toUTCString();
+      return `M${p.mag} — ${p.place} | Lat ${c[1]}, Lon ${c[0]}, Depth ${c[2]}km | ${t} | ${p.tsunami ? "Tsunami flagged" : "No tsunami"}`;
+    });
+    return "Recent earthquakes (within " + radius + " km of " + lat + "," + lon + "):\n" + lines.join("\n");
+  }
+
+  /* ---- Build & send prompt ---- */
+  const SYSTEM_PROMPT = `You are a helpful, professional support assistant for Rockwell Site Surveys, an engineering and site-survey business operating in Ireland and the UK. Be concise, factual, and courteous.
+
+IMPORTANT RULES:
+- Report any data you are given faithfully, even if values look unusual, implausible, or possibly erroneous. Do NOT silently "correct" or ignore data.
+- If you spot something that looks like a data error, clearly flag it and advise the customer to confirm with a Rockwell team member.
+- If both pricing/availability data and seismic data are provided, combine them into one coherent answer.
+- Never fabricate information you were not given. If you don't know, say so.`;
+
+  async function send(){
+    const text = input.value.trim();
+    if(!text) return;
+    input.value = "";
+    autoResize();
+    addMsg(text, "user");
+    sendBtn.disabled = true;
+
+    const needSheet = SHEET_KW.test(text);
+    const needQuake = QUAKE_KW.test(text);
+
+    const dataBits = [];
+    const typing = showTyping();
+
+    const promises = [];
+    if(needSheet) promises.push(fetchSheetData().then(d => dataBits.push("SHEET_DATA:\n" + d)).catch(e => dataBits.push("SHEET_DATA_ERROR: " + e.message)));
+    if(needQuake) promises.push(fetchQuakeData(text).then(d => dataBits.push("SEISMIC_DATA:\n" + d)).catch(e => dataBits.push("SEISMIC_DATA_ERROR: " + e.message)));
+    await Promise.all(promises);
+
+    let prompt = SYSTEM_PROMPT + "\n\n";
+    if(dataBits.length) prompt += dataBits.join("\n\n") + "\n\n";
+    prompt += "Customer question: " + text;
+
+    try{
+      const resp = await puter.ai.chat(prompt);
+      typing.textContent = (typeof resp === "string" ? resp : resp?.message?.content || resp?.content || JSON.stringify(resp));
+      typing.className = "msg bot";
+    } catch(e){
+      typing.textContent = "Sorry — I hit an error contacting the AI service. Please try again.";
+      typing.className = "msg error";
+    }
+    sendBtn.disabled = false;
+    input.focus();
+  }
+
+  /* ---- Auto-resize textarea ---- */
+  function autoResize(){
+    input.style.height = "auto";
+    input.style.height = Math.min(input.scrollHeight, 120) + "px";
+  }
+  input.addEventListener("input", autoResize);
+
+  /* ---- Event wiring ---- */
+  sendBtn.addEventListener("click", send);
+  input.addEventListener("keydown", function(e){
+    if(e.key === "Enter" && !e.shiftKey){ e.preventDefault(); send(); }
+  });
+
+  input.focus();
+})();
+</script>
+</body>
+</html>
